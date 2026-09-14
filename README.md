@@ -23,7 +23,7 @@ Um dispenser inteligente construído sobre uma caixa organizadora de comprimidos
 
 ## ⚙️ Como Funciona
 
-```
+
 1. ESP32 liga → conecta ao Wi-Fi → sincroniza hora via NTP
 2. Sistema compara a hora atual com a tabela de horários programados
 3. No horário certo:
@@ -34,13 +34,13 @@ Um dispenser inteligente construído sobre uma caixa organizadora de comprimidos
 5. Idoso aperta o botão de confirmação
 6. ESP32 envia mensagem ao bot do Telegram:
      "✅ [Nome] tomou a medicação das 12:00 — compartimento 2."
-```
+
 
 ---
 
 ## 🏗️ Arquitetura
 
-```
+
                     ┌──────────────────┐
                     │   Wi-Fi / NTP     │
                     └────────┬──────────┘
@@ -61,12 +61,12 @@ Um dispenser inteligente construído sobre uma caixa organizadora de comprimidos
                                              │ (avisa o cuidador)  │
                                              └───────────────────┘
 
----
+
 
 ## 🧰 Materiais Utilizados (BOM)
 
 | Componente | Função | Situação |
-|---|---|---|
+
 | ESP32 (DevKit) | Controlador central, Wi-Fi | ✅ Já possuía |
 | Buzzer ativo 5V | Alerta sonoro | ✅ Já possuía |
 | LED | Alerta visual | ✅ Já possuía |
@@ -80,16 +80,14 @@ Um dispenser inteligente construído sobre uma caixa organizadora de comprimidos
 **Bibliotecas de software:**
 
 | Biblioteca | Uso |
-|---|---|
+
 | `WiFi.h` | Conexão Wi-Fi do ESP32 |
 | `time.h` / `configTime()` | Sincronização de hora via NTP |
 | `Adafruit_SSD1306` + `Adafruit_GFX` | Controle do display OLED |
 | `UniversalTelegramBot` | Envio de mensagens ao Telegram |
 | `ArduinoJson` | Dependência da biblioteca do Telegram |
 
----
 
 
-## 📄 Licença
 
-*A definir pela equipe (ex: MIT License).*
+

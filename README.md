@@ -10,10 +10,10 @@
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](#)
 
 <p align="center">
-  <b>Dispenser inteligente com tríplice alerta (Display OLED, Som e Luz), confirmação física de dose, sincronização automática de horário via NTP, dashboard web local e notificações em tempo real ao cuidador via Telegram.</b>
+  <b>Dispensador inteligente com tríplice alerta sensorial (Display OLED SSD1306, Buzzer e LED), confirmação física via botão com debounce, relógio em tempo real sincronizado via NTP, dashboard web responsivo para o cuidador e notificações instantâneas no Telegram.</b>
 </p>
 
-*Projeto acadêmico desenvolvido para a disciplina de Conectividade de Sistemas Ciberfísicos • Engenharia de Software*
+*Projeto acadêmico desenvolvido para a disciplina de Conectividade de Sistemas Ciberfísicos • Bacharelado em Engenharia de Software • PUCPR*
 
 ---
 
@@ -24,8 +24,8 @@
 - [✨ Principais Recursos](#-principais-recursos)
 - [🔄 Fluxo de Funcionamento](#-fluxo-de-funcionamento)
 - [🛠️ Especificações de Hardware e Pinagem](#️-especificações-de-hardware-e-pinagem)
-- [📲 Integração com o Telegram](#-integração-com-o-telegram)
-- [🌐 Dashboard Web Local](#-dashboard-web-local)
+- [📲 Notificações e Comandos via Telegram](#-notificações-e-comandos-via-telegram)
+- [🌐 Dashboard Web do Cuidador](#-dashboard-web-do-cuidador)
 - [📦 Bibliotecas e Dependências](#-bibliotecas-e-dependências)
 - [🚀 Instalação e Configuração](#-instalação-e-configuração)
 - [📁 Estrutura do Repositório](#-estrutura-do-repositório)
@@ -35,25 +35,25 @@
 
 ## 📖 Sobre o Projeto
 
-Idosos que moram sozinhos ou passam grande parte do dia desacompanhados enfrentam dificuldades rotineiras na gestão de sua terapia medicamentosa. Esquecimentos, confusão de horários e equívocos na identificação de comprimidos em tratamentos com múltiplas doses diárias (café da manhã, almoço, tarde, jantar e noite) são fatores críticos de internações e agravamento de doenças crônicas.
+Idosos que residem sozinhos ou passam períodos do dia sem acompanhamento presencial enfrentam desafios diários na gestão de seus medicamentos. Esquecimentos, confusão entre caixas semelhantes e atrasos em tratamentos poli-medicamentosos representam riscos clínicos graves e internações evitáveis.
 
-O **Pill Dispenser Inteligente** conecta o ambiente físico ao digital para garantir a adesão ao tratamento e proporcionar tranquilidade a familiares e cuidadores:
+O **Pill Dispenser Inteligente** conecta o ambiente físico ao digital para garantir a adesão terapêutica e dar total tranquilidade aos familiares e cuidadores:
 
-1. **Guia Visual Direto:** Ao tocar o alarme, o visor OLED exibe em números gigantescos o **número exato do compartimento/potinho** que deve ser aberto.
-2. **Estímulo Multissensorial:** Alarme sonoro pulsante e LED de alto brilho garantem que idosos com leve deficiência auditiva ou visual percebam o alerta.
-3. **Comprovação de Tomada da Dose:** O idoso aperta o botão de confirmação após retirar a medicação, silenciando o sistema.
-4. **Alerta Imediato ao Cuidador:** O ESP32 envia uma notificação instantânea via **Telegram** para o celular do responsável, informando o número do potinho e a hora exata da ingestão.
+1. **Identificação Visual Clara:** Ao soar o alarme, o display OLED exibe de forma destacada o **número do compartimento/potinho (1 a 20)** a ser retirado.
+2. **Estímulo Multissensorial:** A combinação de buzzer contínuo e LED difuso garante que o paciente perceba o chamado, mesmo em outro cômodo ou com leve limitação sensorial.
+3. **Confirmação Física pelo Idoso:** O paciente retira o comprimido da gaveta correspondente e aperta o botão frontal, silenciando o alarme.
+4. **Comunicação Direta com o Cuidador:** O ESP32 despacha na hora uma notificação silenciosa e limpa no Telegram do cuidador com o pote ingerido e o horário exato.
 
 ---
 
 ## ✨ Principais Recursos
 
-- ⏰ **Sincronização Automática via NTP:** Obtém o horário oficial de Brasília (UTC-3) pela internet via servidores `pool.ntp.org`, dispensando ajustes manuais de relógio.
-- 💾 **Persistência em Memória Flash (NVS):** Todos os alarmes e associações com compartimentos são salvos via `Preferences.h`, mantendo-se intactos mesmo se a energia cair.
-- 📱 **Controle Bidirecional por Telegram:** Permite ao cuidador consultar status, cadastrar ou remover alarmes, receber confirmações e até acionar ou confirmar alarmes remotamente por botões interativos (*inline keyboards*).
-- 🌐 **Dashboard Web Embarcado:** Interface gráfica moderna hospedada no próprio microcontrolador (Porta 80) para configuração rápida via navegador em qualquer celular, tablet ou computador conectado à mesma rede.
-- 🔘 **Debounce Instantâneo:** Leitura do botão via resistor pull-up interno (`INPUT_PULLUP`) com tratamento rápido contra repique mecânico (*debounce*).
-- 🎨 **Animações Gráficas no Display OLED:** Animação de inicialização com ilustração de cápsula/onda cardíaca e barra de carregamento fluida.
+- ⏰ **Sincronização Automática via NTP:** Obtém o horário oficial de Brasília (UTC-3) pela internet via servidores `pool.ntp.org`, dispensando ajustes manuais de relógio ou RTC externo.
+- 💾 **Persistência em Memória Não-Volátil (NVS):** Todos os alarmes e associações com compartimentos são gravados com a biblioteca `Preferences.h`, permanecendo salvos mesmo após quedas de energia.
+- 📱 **Integração com Telegram Bot:** Notificação automática no smartphone do cuidador e comandos remotos com filtro rígido de segurança por `CHAT_ID`.
+- 🌐 **Dashboard Web Embarcado:** Interface web moderna e responsiva (porta 80) com UX humanizada para cuidadores: atalhos rápidos (*Manhã, Almoço, Tarde, Noite*), seletor de potes e modo desenvolvedor protegido.
+- 🔘 **Debounce Instantâneo:** Leitura do pushbutton com pull-up interno (`INPUT_PULLUP`) e filtro mecânico para evitar falsos acionamentos.
+- 🔒 **Privacidade de Dados:** Bloqueio de comandos de usuários desconhecidos no Telegram; apenas o cuidador autorizado gerencia o sistema.
 
 ---
 
@@ -61,18 +61,17 @@ O **Pill Dispenser Inteligente** conecta o ambiente físico ao digital para gara
 
 ```mermaid
 flowchart TD
-    A[Horário programado atinge a hora certa] --> B[ESP32 aciona Tríplice Alerta]
-    B --> C[OLED mostra o número do compartimento em destaque]
-    B --> D[Buzzer ativo toca padrão intermitente]
-    B --> E[LED pisca indicando alarme]
-    B --> F[Telegram envia mensagem de alerta ao cuidador]
+    A[Horário programado atinge a hora certa] --> B[ESP32 aciona Alarme na Bancada]
+    B --> C[OLED exibe número do Potinho em destaque]
+    B --> D[Buzzer ativo emite padrão sonoro contínuo]
+    B --> E[LED pisca indicando o compartimento]
     
-    C & D & E --> G{Idoso toma o remédio e aperta o botão físico}
+    C & D & E --> F{Idoso toma o remédio e aperta o botão físico}
     
-    G -->|Botão pressionado| H[Alarme silencia imediatamente]
-    H --> I[OLED exibe mensagem 'MUITO BEM!']
-    H --> J[Telegram notifica o cuidador: 'Dose Confirmada!']
-    H --> K[Contador diário de doses é atualizado]
+    F -->|Botão pressionado| G[Alarme silencia imediatamente]
+    G --> H[OLED exibe feedback 'MUITO BEM!']
+    G --> I[Telegram notifica o cuidador: Dose confirmada!]
+    G --> J[Contador diário de doses é incrementado]
 ```
 
 ---
@@ -83,17 +82,17 @@ flowchart TD
 
 | Componente | Função no Sistema | Detalhes Técnicos |
 |---|---|---|
-| **ESP32 Dev Module** | Microcontrolador central | Wi-Fi 2.4 GHz, 30 pinos |
-| **Display OLED 0.96"** | Interface visual local para o idoso | Resolução 128x64, Barramento I2C (SSD1306) |
-| **Buzzer Ativo 5V / 3.3V** | Sinalizador sonoro de alta frequência | Controle digital liga/desliga |
-| **LED Difuso (5mm)** | Sinalizador visual de bancada | Limitado com resistor de 220Ω / 330Ω |
-| **Pushbutton Táctil** | Botão de confirmação de dose tomada | Ligado em pull-up interno para o GND |
-| **Organizador de Comprimidos** | Armazenamento físico das doses | Caixinhas numeradas (1 a 20) |
-| **Fonte / Cabo Micro-USB** | Alimentação do circuito | 5V / 1A - 2A |
+| **ESP32 Dev Module** | Microcontrolador central com conectividade Wi-Fi | 30 pinos, 2.4 GHz 802.11 b/g/n |
+| **Display OLED 0.96"** | Interface visual de mensagens ao paciente | Resolução 128x64, I2C SSD1306 |
+| **Buzzer Ativo** | Emissor sonoro de advertência de dose | 5V / 3.3V, controle digital ON/OFF |
+| **LED Difuso (5mm)** | Sinalizador luminoso do compartimento | Resistor de proteção 220Ω / 330Ω |
+| **Pushbutton Táctil** | Botão de confirmação de ingestão | Ligação pull-up interna para GND |
+| **Organizador de Comprimidos** | Armazenamento físico numerado | Caixinhas / potinhos (1 a 20) |
+| **Alimentação** | Cabo Micro-USB conectado à fonte 5V | 5V / 1A - 2A |
 
-### Diagrama de Pinagem (ESP32)
+### Diagrama de Pinagem
 
-```
+```text
                        +-------------------+
                        |    ESP32 DevKit   |
                        |                   |
@@ -101,41 +100,62 @@ flowchart TD
         [OLED SDA] --->| GPIO 21           |
         [BUZZER +] --->| GPIO 18           |
         [LED +]    --->| GPIO 4            |
-        [BOTÃO]    --->| GPIO 13 (PULLUP)  |---> [BOTÃO OUTRO TERMINAL] ---> GND
-        [VCC 3.3V] --->| 3V3 / VIN         |
+        [BOTÃO]    --->| GPIO 13 (PULLUP)  |---> [OUTRO TERMINAL DO BOTÃO] ---> GND
+        [VCC 3.3V] --->| 3V3               |
         [GND]      --->| GND               |
                        +-------------------+
 ```
 
 > [!NOTE]
-> O botão físico está configurado com `pinMode(PINO_BOTAO, INPUT_PULLUP)`. Um terminal conecta-se ao **GPIO 13** e o outro terminal diretamente ao **GND**, eliminando a necessidade de resistores externos na protoboard.
+> O botão físico utiliza `pinMode(PINO_BOTAO, INPUT_PULLUP)`. Um terminal conecta-se ao **GPIO 13** e o outro diretamente ao **GND**, dispensando resistores externos na protoboard.
 
 ---
 
-## 📲 Integração com o Telegram
+## 📲 Notificações e Comandos via Telegram
 
-O robô envia notificações proativas sempre que um alarme dispara ou quando uma dose é ingerida. Além disso, o cuidador pode interagir através dos comandos:
+O bot `@pill_disp_bot` opera com foco em privacidade e objetividade, enviando notificações proativas nas situações cruciais e disponibilizando comandos remotos.
+
+### Mensagens Automáticas (Sem excesso de alertas)
+
+1. **Ao Ligar o Dispositivo (Boot):**
+   ```text
+   Pill Dispenser iniciado!
+   Status: Online
+   ```
+
+2. **Ao Confirmar a Ingestão do Medicamento:**
+   ```text
+   Dose confirmada!
+   Pote 2 • 19:15
+   ```
+
+### Comandos Registrados no BotFather
 
 | Comando | Descrição | Exemplo de Uso |
 |---|---|---|
-| `/status` | Exibe hora atual, próximo alarme, doses tomadas hoje e estado do LED | `/status` |
-| `/alarmes` ou `/listar` | Lista todas as doses do dia com os respectivos compartimentos | `/alarmes` |
-| `/add <hh:mm> <pote>` | Adiciona um novo horário e associa ao número do pote (1 a 20) | `/add 08:30 1` |
-| `/horarios <h:m p, ...>` | Cadastra uma rotina completa de horários de uma só vez | `/horarios 08:00 1, 12:30 2, 20:00 3` |
-| `/confirmar` | Confirma o alarme remotamente pelo Telegram caso necessário | `/confirmar` |
-| `/disparar <pote>` | Dispara um teste de alarme imediatamente para simulação | `/disparar 2` |
-| `/limpar` | Apaga todos os alarmes salvos na memória Flash | `/limpar` |
-| `/ajuda` | Mostra o menu de ajuda com todos os comandos disponíveis | `/ajuda` |
+| `/status` | Exibe se o aparelho está online, próximo remédio e doses do dia | `/status` |
+| `/alarmes` | Lista os horários agendados e os potes associados | `/alarmes` |
+| `/confirmar` | Registra a confirmação da dose pelo celular | `/confirmar` |
+| `/adicionar` | Adiciona um horário individual e o número do pote | `/adicionar 08:00 1` |
+| `/horarios` | Cadastra a rotina completa do dia em lote | `/horarios 08:00 1, 12:30 2, 20:00 3` |
+
+> [!TIP]
+> O comando de bancada `/disparar <pote>` (ex: `/disparar 2`) permanece disponível para testes do alarme físico, mas não é exposto no menu público para evitar acionamentos acidentais.
 
 ---
 
-## 🌐 Dashboard Web Local
+## 🌐 Dashboard Web do Cuidador
 
-O ESP32 executa um servidor HTTP próprio na porta `80`. Ao conectar qualquer dispositivo (smartphone, notebook) na mesma rede Wi-Fi, basta abrir o navegador no endereço IP do ESP32 (`http://<IP_DO_ESP32>/`) para acessar uma interface web completa:
+O ESP32 hospeda um Web Server autônomo na porta `80`. Ao acessar o endereço IP do dispositivo via navegador (`http://<IP_DO_ESP32>/`), o cuidador encontra uma interface limpa e intuitiva:
 
-- **Monitoramento em Tempo Real:** Visualização do relógio sincronizado, doses do dia e alertas em andamento.
-- **Painel de Controle:** Botões para disparar alarme de teste, silenciar alarme ativo e ligar/desligar a luz de bancada.
-- **Gestão de Horários:** Formulário para inclusão e exclusão dinâmica de alarmes sem necessidade de reconectar o microcontrolador ao computador.
+- **Identificação do Paciente e Relógio:** Visualização clara do paciente assistido e hora sincronizada.
+- **Banner de Status Inteligente:** Card dinâmico que permanece verde (*"Tudo em ordem"*) em repouso e assume animação pulsante em alerta (*"HORA DO REMÉDIO!"*), orientando qual pote entregar.
+- **Cadastro Simples em 3 Etapas:**
+  1. Digitação do nome comercial do medicamento (*ex: Losartana 50mg*).
+  2. Seleção de horário por atalhos de 1 clique (*☀️ Manhã 07:00, 🍽️ Almoço 12:00, ☕ Tarde 16:00, 🌙 Noite 20:00*) ou seletor manual.
+  3. Mapeamento visual das gavetas/potinhos com avanço automático para o próximo compartimento livre.
+- **Linha do Tempo de Medicamentos:** Relação dos remédios do dia em ordem cronológica com botão de exclusão rápida.
+- **Modo Desenvolvedor Colapsável:** Painel oculto com testes de buzzer e luz para bancada, preservando a interface do cuidador limpa.
 
 ---
 
@@ -143,13 +163,12 @@ O ESP32 executa um servidor HTTP próprio na porta `80`. Ao conectar qualquer di
 
 Instale as seguintes bibliotecas através do **Library Manager** da Arduino IDE (`Ctrl + Shift + I`):
 
-1. **Adafruit SSD1306** (por Adafruit) — *Instale todas as dependências adicionais solicitadas, como a `Adafruit GFX`*.
+1. **Adafruit SSD1306** (por Adafruit) — *Com sua dependência `Adafruit GFX Library`*.
 2. **UniversalTelegramBot** (por Brian Lough).
 3. **ArduinoJson** (por Benoît Blanchon) — *Versão 6.x ou 7.x*.
 
-Bibliotecas nativas do ESP32 Core já inclusas no pacote da placa:
-- `WiFi.h`
-- `WiFiClientSecure.h`
+Bibliotecas nativas do core ESP32 (já inclusas na instalação da placa):
+- `WiFi.h` e `WiFiClientSecure.h`
 - `WebServer.h`
 - `Wire.h`
 - `Preferences.h`
@@ -166,30 +185,29 @@ cd PillDispenser
 ```
 
 ### 2. Abrir o Código na Arduino IDE
-Abra o arquivo principal localizado em:
-```
+Abra o projeto localizado na pasta:
+```text
 pill_dispenser/pill_dispenser.ino
 ```
 
 ### 3. Configurar Credenciais
-No início do arquivo `pill_dispenser.ino`, atualize as seguintes constantes com suas informações:
+No topo do arquivo, informe as credenciais de Wi-Fi e do Bot:
 
 ```cpp
-// Credenciais do Telegram (obtidas com o @BotFather e @userinfobot)
+// Credenciais do Telegram
 #define BOT_TOKEN "SEU_BOT_TOKEN_AQUI"
 #define CHAT_ID   "SEU_CHAT_ID_AQUI"
 
 // Rede Wi-Fi
-const char* WIFI_SSID = "NOME_DA_SUA_REDE_WIFI"; 
+const char* WIFI_SSID = "NOME_DO_SEU_WIFI"; 
 const char* WIFI_PASS = "SENHA_DO_SEU_WIFI";
 ```
 
 ### 4. Gravação no ESP32
-1. Conecte o ESP32 ao computador via cabo USB de dados.
-2. Na Arduino IDE, selecione a placa **ESP32 Dev Module** (em *Ferramentas -> Placa -> ESP32 Arduino*).
-3. Selecione a porta COM correspondente.
-4. Clique em **Carregar (Upload)**.
-5. Abra o **Monitor Serial** configurado em `115200 baud` para visualizar a inicialização, a conexão Wi-Fi e o IP atribuído ao servidor web.
+1. Conecte o ESP32 ao computador via cabo USB.
+2. Na Arduino IDE, selecione a placa **ESP32 Dev Module** e a porta serial (COM).
+3. Clique em **Carregar (Upload)**.
+4. Abra o **Monitor Serial** a `115200 baud` para acompanhar o status da conexão e verificar o IP da interface web.
 
 ---
 
@@ -199,19 +217,16 @@ const char* WIFI_PASS = "SENHA_DO_SEU_WIFI";
 PillDispenser/
 │
 ├── pill_dispenser/
-│   └── pill_dispenser.ino   # Código-fonte oficial completo para o ESP32
+│   └── pill_dispenser.ino   # Código-fonte oficial do ESP32 (preservado para upload)
 │
-└── README.md                # Documentação técnica e guia do projeto
+└── README.md                # Documentação técnica completa e guia do projeto
 ```
-
-> [!TIP]
-> A pasta e o arquivo de código possuem o mesmo nome (`pill_dispenser/pill_dispenser.ino`), atendendo integralmente ao padrão exigido pela Arduino IDE para abertura direta sem avisos de realocação.
 
 ---
 
 ## 👥 Equipe e Autores
 
-Projeto desenvolvido com dedicação por:
+Projeto desenvolvido para a disciplina de **Conectividade de Sistemas Ciberfísicos**:
 
 - **Henrique Gnatkovski**
 - **Julia Moura**
@@ -219,4 +234,4 @@ Projeto desenvolvido com dedicação por:
 - **Sabrina Bernardi**
 - **Yasmin Luz**
 
-*Curso de Engenharia de Software • Disciplina de Conectividade de Sistemas Ciberfísicos*
+*Pontifícia Universidade Católica do Paraná (PUCPR) • Escola Politécnica • Engenharia de Software*

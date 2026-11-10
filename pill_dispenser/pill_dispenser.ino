@@ -23,15 +23,15 @@
 #define EMOJI_LAMPADA  "\xF0\x9F\x92\xA1"
 
 // ================= CONFIGURAÇÕES DO TELEGRAM =================
-#define BOT_TOKEN "8942965792:AAEoMjgeg7voiwcgE8FIDT_MhX6nPqLaoKk"
-#define CHAT_ID   "5870981394"
+#define BOT_TOKEN "SEU_BOT_TOKEN_AQUI"
+#define CHAT_ID   "SEU_CHAT_ID_AQUI"
 
 WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
 
-// ================= REDE DO SEU IPHONE =================
-const char* WIFI_SSID = "iPhone de Henrique"; 
-const char* WIFI_PASS = "pilldispenser";
+// ================= REDE WI-FI =================
+const char* WIFI_SSID = "NOME_DO_SEU_WIFI"; 
+const char* WIFI_PASS = "SENHA_DO_SEU_WIFI";
 
 // ================= CONFIGURAÇÕES DO DISPLAY OLED =================
 #define LARGURA_TELA 128

@@ -22,16 +22,16 @@
 #define EMOJI_DEDO     "\xF0\x9F\x91\x89"
 #define EMOJI_LAMPADA  "\xF0\x9F\x92\xA1"
 
-// ================= CONFIGURAÇÕES DO TELEGRAM =================
-#define BOT_TOKEN "SEU_BOT_TOKEN_AQUI"
-#define CHAT_ID   "SEU_CHAT_ID_AQUI"
+// ================= CONFIGURAÇÕES DO TELEGRAM =================                                                                                                                         ª°º
+#define BOT_TOKEN "BOT_TOKEN_AQUI"
+#define CHAT_ID   "CHAT_ID_AQUI"
 
 WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
 
-// ================= REDE WI-FI =================
-const char* WIFI_SSID = "NOME_DO_SEU_WIFI"; 
-const char* WIFI_PASS = "SENHA_DO_SEU_WIFI";
+// ================= REDE DO SEU IPHONE =================
+const char* WIFI_SSID = "SEU_WIFI"; 
+const char* WIFI_PASS = "SUA_SENHA";
 
 // ================= CONFIGURAÇÕES DO DISPLAY OLED =================
 #define LARGURA_TELA 128
@@ -368,13 +368,8 @@ void iniciarAlarme(int pote) {
   setLed(true);
   desenharTelaAlarme();
 
-  String msg = String(EMOJI_SIRENE) + " *PILL DISPENSER • HORA DO REMEDIO!*\n";
-  msg += "━━━━━━━━━━━━━━━━━━━━\n";
-  msg += String(EMOJI_RELOGIO) + " *Horario:* `" + getHoraAtualStr() + "`\n";
-  msg += String(EMOJI_PILULA) + " *POTINHO A TOMAR: Nº " + String(poteAlarmeAtual) + "*\n\n";
-  msg += String(EMOJI_DEDO) + " _O idoso deve pegar a caixinha " + String(poteAlarmeAtual) + " e apertar o botao._";
-
-  enviarAlertaTelegramComBotao(msg);
+  // Telegram configurado para NÃO enviar alerta no disparo,
+  // enviando apenas no boot e na confirmação da dose tomada.
 }
 
 void confirmarDose() {
@@ -387,12 +382,7 @@ void confirmarDose() {
   desenharTelaConfirmacao();
   emitirBipe();
 
-  String msg = String(EMOJI_CHECK) + " *DOSE CONFIRMADA!*\n";
-  msg += "━━━━━━━━━━━━━━━━━━━━\n";
-  msg += String(EMOJI_PILULA) + " *Potinho tomado:* Nº " + String(poteAlarmeAtual) + "\n";
-  msg += String(EMOJI_HORA) + " *Horario:* " + getHoraAtualStr() + "\n";
-  msg += String(EMOJI_GRAFICO) + " *Total hoje:* " + String(dosesConfirmadas) + " doses registradas\n\n";
-  msg += "_Tudo tranquilo por aqui!_ " + String(EMOJI_CORACAO);
+  String msg = "Dose confirmada!\nPote " + String(poteAlarmeAtual) + " • " + getHoraAtualStr();
   enviarTelegram(msg);
 }
 
@@ -433,9 +423,6 @@ void checarHorarioAutomatico() {
 
 // ================= COMANDOS DO TELEGRAM =================
 void processarComandosTelegram() {
-  // NÃO trava o processador no Telegram se o alarme estiver tocando!
-  if (alarmeAtivo) return;
-
   int numNovasMensagens = bot.getUpdates(bot.last_message_received + 1);
 
   while (numNovasMensagens) {
@@ -447,16 +434,13 @@ void processarComandosTelegram() {
       String texto = bot.messages[i].text;
       texto.trim();
 
+      // 1. CONFIRMAR DOSE
       if (tipo == "callback_query" || texto == "/confirmar") {
-        if (alarmeAtivo) {
-          confirmarDose();
-          bot.answerCallbackQuery(bot.messages[i].query_id, "Dose confirmada com sucesso!");
-        } else {
-          bot.answerCallbackQuery(bot.messages[i].query_id, "Nenhum alarme tocando no momento.");
-        }
+        confirmarDose();
         continue;
       }
 
+      // 2. DEFINIR ROTINA COMPLETA (/horarios)
       if (texto.startsWith("/horarios ") || texto.startsWith("/rotina ")) {
         int pos = 0;
         totalAlarmes = 0;
@@ -501,24 +485,24 @@ void processarComandosTelegram() {
         ordenarAlarmes();
         salvarAlarmesNaFlash();
 
-        String resp = String(EMOJI_RELOGIO) + " *ROTINA DE HORARIOS ATUALIZADA!*\n";
-        resp += "━━━━━━━━━━━━━━━━━━━━\n";
+        String resp = "Rotina atualizada!\n";
         if (totalAlarmes > 0) {
           for (int a = 0; a < totalAlarmes; a++) {
-            resp += String(a + 1) + ". `" + getHoraFormatada(alarmes[a].hora, alarmes[a].minuto) + "` ➔ *Pote " + String(alarmes[a].pote) + "*\n";
+            resp += String(a + 1) + ". " + getHoraFormatada(alarmes[a].hora, alarmes[a].minuto) + " • Pote " + String(alarmes[a].pote) + "\n";
           }
-          resp += "\n" + String(EMOJI_SINO) + " *Proximo:* `" + getProximoAlarmeStr() + "`\n";
-          resp += "Salvo permanentemente na memoria!";
+          resp += "\nProximo: " + getProximoAlarmeStr();
         } else {
-          resp += "Formato invalido. Exemplo:\n`/horarios 08:00 1, 14:00 5, 20:00 2`";
+          resp += "Formato invalido. Exemplo:\n/horarios 08:00 1, 14:00 2, 20:00 3";
         }
 
-        bot.sendMessage(CHAT_ID, resp, "Markdown");
+        bot.sendMessage(CHAT_ID, resp, "");
         desenharTelaEspera();
       }
-      else if (texto.startsWith("/add ") || texto.startsWith("/alarme ")) {
+
+      // 3. ADICIONAR ALARME INDIVIDUAL (/adicionar ou /add)
+      else if (texto.startsWith("/adicionar ") || texto.startsWith("/add ") || texto.startsWith("/alarme ")) {
         if (totalAlarmes >= MAX_ALARMES) {
-          bot.sendMessage(CHAT_ID, "Limite de " + String(MAX_ALARMES) + " alarmes atingido! Use `/limpar` para reiniciar.", "Markdown");
+          bot.sendMessage(CHAT_ID, "Limite de " + String(MAX_ALARMES) + " alarmes atingido!", "");
         } else {
           String args = texto.substring(texto.indexOf(' ') + 1);
           args.trim();
@@ -549,37 +533,40 @@ void processarComandosTelegram() {
               ordenarAlarmes();
               salvarAlarmesNaFlash();
 
-              String resp = String(EMOJI_CHECK) + " *HORARIO ADICIONADO!*\n";
-              resp += "Alarme: `" + getHoraFormatada(h, m) + "` ➔ *Pote " + String(p) + "*\n";
-              resp += String(EMOJI_SINO) + " Proximo alarme: `" + getProximoAlarmeStr() + "`";
-              bot.sendMessage(CHAT_ID, resp, "Markdown");
+              String resp = "Alarme adicionado!\n" + getHoraFormatada(h, m) + " • Pote " + String(p);
+              bot.sendMessage(CHAT_ID, resp, "");
               desenharTelaEspera();
             } else {
-              bot.sendMessage(CHAT_ID, "Horario invalido! Exemplo: `/add 08:00 3`", "Markdown");
+              bot.sendMessage(CHAT_ID, "Horario invalido! Exemplo: /adicionar 08:00 1", "");
             }
           }
         }
       }
+
+      // 4. LISTAR ALARMES (/alarmes)
       else if (texto == "/alarmes" || texto == "/listar") {
-        String resp = String(EMOJI_RELOGIO) + " *ROTINA DE REMEDIOS (POTINHOS 1 A 20)*\n";
-        resp += "━━━━━━━━━━━━━━━━━━━━\n";
+        String resp = "Alarmes agendados:\n";
         if (totalAlarmes == 0) {
-          resp += "Nenhum alarme programado.\nDefina com: `/add 08:00 3` ou `/horarios 08:00 1, 14:00 5`";
+          resp += "Nenhum alarme programado.";
         } else {
           for (int a = 0; a < totalAlarmes; a++) {
-            resp += String(a + 1) + ". `" + getHoraFormatada(alarmes[a].hora, alarmes[a].minuto) + "` ➔ *Potinho " + String(alarmes[a].pote) + "*\n";
+            resp += String(a + 1) + ". " + getHoraFormatada(alarmes[a].hora, alarmes[a].minuto) + " • Pote " + String(alarmes[a].pote) + "\n";
           }
-          resp += "\n" + String(EMOJI_SINO) + " *Proximo:* `" + getProximoAlarmeStr() + "`\n";
-          resp += String(EMOJI_HORA) + " *Hora Atual:* `" + getHoraAtualStr() + "`";
+          resp += "\nProximo: " + getProximoAlarmeStr();
         }
-        bot.sendMessage(CHAT_ID, resp, "Markdown");
+        bot.sendMessage(CHAT_ID, resp, "");
       }
-      else if (texto == "/limpar") {
-        totalAlarmes = 0;
-        salvarAlarmesNaFlash();
-        bot.sendMessage(CHAT_ID, String(EMOJI_CHECK) + " *Todos os alarmes foram apagados!*", "Markdown");
-        desenharTelaEspera();
+
+      // 5. STATUS DO DISPOSITIVO (/status)
+      else if (texto == "/status") {
+        String st = "Status: Online\n";
+        st += "Hora atual: " + getHoraAtualStr() + "\n";
+        st += "Proximo alarme: " + getProximoAlarmeStr() + "\n";
+        st += "Doses tomadas hoje: " + String(dosesConfirmadas);
+        bot.sendMessage(CHAT_ID, st, "");
       }
+
+      // COMANDO OCULTO / BANCADA (/disparar)
       else if (texto.startsWith("/disparar")) {
         int poteTeste = 1;
         int espaco = texto.indexOf(' ');
@@ -588,44 +575,18 @@ void processarComandosTelegram() {
           if (poteTeste < 1 || poteTeste > 20) poteTeste = 1;
         }
         iniciarAlarme(poteTeste);
+        bot.sendMessage(CHAT_ID, "Alarme disparado!\nPote " + String(poteTeste), "");
       }
-      else if (texto == "/status") {
-        String st = String(EMOJI_PILULA) + " *STATUS • PILL DISPENSER*\n";
-        st += "━━━━━━━━━━━━━━━━━━━━\n";
-        st += String(EMOJI_HORA) + " *Hora Atual:* " + getHoraAtualStr() + "\n";
-        st += String(EMOJI_SINO) + " *Proximo Alarme:* `" + getProximoAlarmeStr() + "`\n";
-        st += String(EMOJI_GRAFICO) + " *Doses Tomadas Hoje:* " + String(dosesConfirmadas) + "\n";
-        st += String(EMOJI_LAMPADA) + " *LED Bancada:* " + String(ledLigado ? "LIGADO" : "DESLIGADO");
-        bot.sendMessage(CHAT_ID, st, "Markdown");
-      }
-      else if (texto.startsWith("/brilho ")) {
-        int b = texto.substring(8).toInt();
-        if (b < 0) b = 0;
-        if (b > 255) b = 255;
-        setBrilhoDisplay(b);
-        bot.sendMessage(CHAT_ID, "☀️ *Brilho ajustado para:* `" + String(b) + "/255`", "Markdown");
-      }
-      else if (texto == "/inverter") {
-        telaInvertida = !telaInvertida;
-        display.invertDisplay(telaInvertida);
-        if (telaInvertida) {
-          bot.sendMessage(CHAT_ID, "🌓 *Modo Invertido ATIVADO!*\nFundo da tela aceso e letras pretas.", "Markdown");
-        } else {
-          bot.sendMessage(CHAT_ID, "🌑 *Modo Normal ATIVADO!*\nFundo preto e letras acesas.", "Markdown");
-        }
-      }
+
+      // AJUDA / START
       else if (texto == "/start" || texto == "/ajuda") {
-        String ajuda = String(EMOJI_PILULA) + " *CENTRAL DO PILL DISPENSER*\n";
-        ajuda += "━━━━━━━━━━━━━━━━━━━━\n\n";
-        ajuda += "⏰ `/add 08:00 3` - Adiciona alarme com o numero do pote (1 a 20)\n";
-        ajuda += "📋 `/horarios 08:00 1, 14:00 5` - Define rotina completa\n";
-        ajuda += "📋 `/alarmes` - Lista os remedios e caixinhas\n";
-        ajuda += "☀️ `/brilho 255` - Ajusta brilho da tela (0 a 255)\n";
-        ajuda += "🌓 `/inverter` - Alterna entre modo normal e invertido\n";
-        ajuda += "🗑️ `/limpar` - Apaga todos os horarios\n";
-        ajuda += "📊 `/status` - Relogio, doses e status\n";
-        ajuda += "🚨 `/disparar 3` - Testa alarme chamando o pote 3";
-        bot.sendMessage(CHAT_ID, ajuda, "Markdown");
+        String ajuda = "Comandos do Pill Dispenser:\n\n";
+        ajuda += "/status - Verifica status do aparelho\n";
+        ajuda += "/alarmes - Lista os horarios agendados\n";
+        ajuda += "/confirmar - Confirma a dose tomada\n";
+        ajuda += "/adicionar 08:00 1 - Adiciona horario e pote\n";
+        ajuda += "/horarios 08:00 1, 14:00 2 - Define rotina completa";
+        bot.sendMessage(CHAT_ID, ajuda, "");
       }
     }
     numNovasMensagens = bot.getUpdates(bot.last_message_received + 1);
@@ -640,111 +601,339 @@ void handleRoot() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pill Dispenser</title>
+  <title>Pill Dispenser - Painel do Cuidador</title>
   <style>
+    :root {
+      --bg-main: #0c1322;
+      --card-bg: #151f33;
+      --card-inner: #0f172a;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.18);
+      --warning: #f59e0b;
+      --border: #223250;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #090d16; color: #f1f5f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .card { background: #111827; border: 1px solid #1e293b; border-radius: 24px; padding: 28px 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
-    .brand-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
-    h1 { font-size: 22px; font-weight: 600; color: #f8fafc; letter-spacing: -0.02em; margin-bottom: 20px; }
-    .grid-status { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
-    .status-tile { background: #0b0f19; border: 1px solid #1e293b; padding: 14px 10px; border-radius: 14px; text-align: center; }
-    .tile-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px; }
-    .tile-val { font-size: 18px; font-weight: 700; color: #f1f5f9; }
-    .val-alarm { font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 6px; display: inline-block; }
-    .st-wait { background: #064e3b33; color: #34d399; border: 1px solid #05966955; }
-    .st-ring { background: #7f1d1d44; color: #f87171; border: 1px solid #ef4444; animation: pulse 1s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-    .box-schedule { background: #0b0f19; border: 1px solid #1e293b; padding: 16px; border-radius: 16px; margin-bottom: 18px; text-align: left; }
-    .box-schedule-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between; }
-    .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
-    input[type="time"] { background: #1e293b; border: 1px solid #334155; color: #f8fafc; font-size: 15px; font-weight: 600; padding: 10px 12px; border-radius: 10px; outline: none; width: 130px; text-align: center; }
-    input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-    .inp-pote { background: #1e293b; border: 1px solid #334155; color: #f8fafc; font-size: 14px; font-weight: 600; padding: 10px 8px; border-radius: 10px; outline: none; width: 80px; text-align: center; }
-    .btn-save { background: #3b82f6; color: white; border: none; padding: 10px 14px; font-size: 13px; font-weight: 600; border-radius: 10px; cursor: pointer; flex-grow: 1; }
-    .alarm-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px; }
-    .alarm-chip { background: #1e293b; border: 1px solid #334155; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-    .alarm-chip b { color: #60a5fa; }
-    .alarm-chip span.del { color: #ef4444; cursor: pointer; font-size: 14px; padding-left: 4px; }
-    button.btn-action { display: block; width: 100%; border: none; padding: 13px; margin: 8px 0; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; }
-    button.btn-action:active { transform: scale(0.98); }
-    .btn-confirm { background: #059669; color: white; }
-    .btn-trigger { background: #b91c1c; color: white; }
-    .btn-led-toggle { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
-    .footer { margin-top: 16px; font-size: 11px; color: #475569; }
+    body { background: var(--bg-main); color: var(--text); display: flex; justify-content: center; padding: 24px 16px; min-height: 100vh; }
+    .container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
+    .header { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .patient-info { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; padding: 4px 8px 4px 4px; border-radius: 14px; transition: background 0.2s; }
+    .patient-info:hover { background: rgba(255, 255, 255, 0.05); }
+    .avatar { width: 46px; height: 46px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
+    .avatar-edit-badge { position: absolute; bottom: -2px; right: -2px; background: #1e293b; border: 1px solid #475569; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+    .patient-meta h2 { font-size: 16px; font-weight: 700; color: #fff; }
+    .patient-meta p { font-size: 11px; color: #38bdf8; }
+    .clock-pill { background: var(--card-inner); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-content { background: #131d31; border: 1px solid #293d62; border-radius: 20px; padding: 24px; width: 100%; max-width: 380px; text-align: center; }
+    .modal-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+    .avatar-picker { display: flex; justify-content: center; gap: 16px; margin-bottom: 18px; }
+    .avatar-opt { width: 56px; height: 56px; border-radius: 50%; background: var(--card-inner); border: 2px solid var(--border); font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .avatar-opt.selected { border-color: #38bdf8; background: #0284c7; transform: scale(1.08); }
+    .modal-input { width: 100%; background: var(--card-inner); border: 1px solid var(--border); color: #fff; font-size: 15px; font-weight: 600; padding: 12px 14px; border-radius: 12px; outline: none; margin-bottom: 18px; text-align: center; }
+    .modal-btns { display: flex; gap: 10px; }
+    .btn-modal { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; }
+    .btn-modal-save { background: var(--primary); color: #fff; }
+    .btn-modal-cancel { background: #1e293b; color: #94a3b8; }
+    .status-banner { background: var(--card-bg); border: 2px solid var(--border); border-radius: 20px; padding: 20px; text-align: center; transition: all 0.3s ease; position: relative; overflow: hidden; }
+    .status-banner.normal { border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, var(--card-bg) 100%); }
+    .status-banner.ringing { border-color: var(--danger); background: linear-gradient(180deg, var(--danger-bg) 0%, var(--card-bg) 100%); animation: alertPulse 1.2s infinite alternate; }
+    @keyframes alertPulse { 0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); } 100% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.7); } }
+    .banner-icon { font-size: 38px; margin-bottom: 6px; }
+    .banner-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .status-banner.normal .banner-title { color: #34d399; }
+    .status-banner.ringing .banner-title { color: #f87171; }
+    .banner-subtitle { font-size: 14px; color: var(--text-muted); }
+    .banner-action-btn { margin-top: 14px; background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; display: none; width: 100%; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); }
+    .status-banner.ringing .banner-action-btn { display: block; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 22px; }
+    .card-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .form-label span.hint { font-size: 11px; text-transform: none; color: #38bdf8; font-weight: 600; }
+    .input-text { width: 100%; background: var(--card-inner); border: 1px solid var(--border); color: #fff; font-size: 15px; font-weight: 600; padding: 12px 14px; border-radius: 12px; outline: none; }
+    .time-shortcuts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+    .btn-chip { background: var(--card-inner); border: 1px solid var(--border); color: #cbd5e1; padding: 8px 4px; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
+    .btn-chip.active { background: #1e3a8a; border-color: var(--primary); color: #60a5fa; }
+    .custom-time-row { display: flex; align-items: center; gap: 10px; }
+    input[type="time"] { flex: 1; background: var(--card-inner); border: 1px solid var(--border); color: #fff; font-size: 16px; font-weight: 700; padding: 11px 14px; border-radius: 12px; outline: none; text-align: center; }
+    input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+    .pote-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+    .pote-btn { background: var(--card-inner); border: 1.5px solid var(--border); color: var(--text-muted); border-radius: 10px; padding: 8px 0; font-size: 13px; font-weight: 800; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .pote-btn span.label { font-size: 8px; font-weight: 600; opacity: 0.7; }
+    .pote-btn:hover { border-color: var(--primary); color: #fff; }
+    .pote-btn.selected { background: #0284c7; border-color: #38bdf8; color: #fff; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); transform: scale(1.04); }
+    .btn-submit { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
+    .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+    .schedule-item { background: var(--card-inner); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .item-left { display: flex; align-items: center; gap: 14px; }
+    .time-badge { background: #1e293b; border: 1px solid #334155; color: #38bdf8; font-size: 15px; font-weight: 800; padding: 8px 12px; border-radius: 10px; min-width: 68px; text-align: center; }
+    .med-details h4 { font-size: 14px; font-weight: 700; color: #fff; }
+    .med-details p { font-size: 12px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+    .pote-tag { background: #0369a1; color: #e0f2fe; font-weight: 700; font-size: 11px; padding: 2px 6px; border-radius: 6px; }
+    .btn-delete { background: transparent; border: none; color: #64748b; font-size: 18px; cursor: pointer; padding: 8px; border-radius: 8px; }
+    .btn-delete:hover { color: var(--danger); }
+    .empty-state { text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px; }
+    .dev-mode-wrapper { margin-top: 6px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .btn-toggle-dev { background: transparent; border: 1px dashed #334155; color: #64748b; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .dev-panel { display: none; width: 100%; background: #0b0f19; border: 1px solid #1e293b; border-radius: 16px; padding: 16px; text-align: left; }
+    .dev-panel.open { display: block; }
+    .dev-panel-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin-bottom: 12px; }
+    .dev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-test { background: var(--card-inner); border: 1px solid var(--border); color: #cbd5e1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-test.alarm-btn { color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="brand-tag">Assistente de Medicacao</div>
-    <h1>Pill Dispenser</h1>
-
-    <div class="grid-status">
-      <div class="status-tile">
-        <div class="tile-label">Relogio</div>
-        <div class="tile-val" id="st-hora">--:--</div>
+  <div class="container">
+    <div class="header">
+      <div class="patient-info" onclick="abrirModalEdicao()" title="Clique para editar paciente">
+        <div class="avatar" id="avatar-display">
+          <span id="avatar-emoji">👵</span>
+          <span class="avatar-edit-badge">✏️</span>
+        </div>
+        <div class="patient-meta">
+          <h2><span id="nome-paciente-display">Dona Maria</span></h2>
+          <p>Dispensador Inteligente • Editar</p>
+        </div>
       </div>
-      <div class="status-tile">
-        <div class="tile-label">Alarme</div>
-        <div class="val-alarm st-wait" id="st-alarm">EM ESPERA</div>
+      <div class="clock-pill">
+        <span>⏰</span>
+        <span id="relogio-topo">--:--</span>
       </div>
     </div>
 
-    <div class="box-schedule">
-      <div class="box-schedule-title">
-        <span>Horarios & Potinhos (1-20)</span>
-        <span id="st-proximo" style="color: #60a5fa;">Prox: --:--</span>
+    <!-- Modal Editar Paciente -->
+    <div class="modal-overlay" id="modal-edicao">
+      <div class="modal-content">
+        <div class="modal-title">Identificação do Paciente</div>
+        <div class="avatar-picker">
+          <div class="avatar-opt selected" id="opt-idosa" onclick="selecionarAvatar('👵')">👵</div>
+          <div class="avatar-opt" id="opt-idoso" onclick="selecionarAvatar('👴')">👴</div>
+        </div>
+        <input type="text" id="modal-input-nome" class="modal-input" placeholder="Nome do Paciente" maxlength="30">
+        <div class="modal-btns">
+          <button type="button" class="btn-modal btn-modal-cancel" onclick="fecharModalEdicao()">Cancelar</button>
+          <button type="button" class="btn-modal btn-modal-save" onclick="salvarPaciente()">Salvar</button>
+        </div>
       </div>
-      <div class="input-row">
-        <input type="time" id="inp-hora" value="08:00">
-        <input type="number" id="inp-pote" class="inp-pote" min="1" max="20" value="1" title="Numero do Pote">
-        <button type="button" class="btn-save" onclick="adicionarHorario()">+ Add</button>
-      </div>
-      <div class="alarm-list" id="lista-alarmes"></div>
     </div>
 
-    <button type="button" class="btn-action btn-confirm" onclick="chamar('/silenciar')">✅ Confirmar Medicação</button>
-    <button type="button" class="btn-action btn-trigger" onclick="chamar('/disparar-alarme')">🚨 Testar Alarme Agora</button>
-    <button type="button" class="btn-action btn-led-toggle" onclick="chamar('/toggle-led')">💡 Alternar LED da Bancada</button>
+    <div class="status-banner normal" id="status-card">
+      <div class="banner-icon" id="status-icon">✅</div>
+      <div class="banner-title" id="status-title">Tudo sob controle</div>
+      <div class="banner-subtitle" id="status-sub">Carregando status...</div>
+      <button class="banner-action-btn" id="btn-confirmar-dose" onclick="confirmarDoseTomada()">
+        ✅ Confirmar que o Remédio foi Tomado
+      </button>
+    </div>
 
-    <div class="footer">Gerenciamento via Telegram: @pill_disp_bot</div>
+    <div class="card">
+      <div class="card-title"><span>➕ Programar Remédio</span></div>
+      <div class="form-group">
+        <label class="form-label"><span>1. Nome do Medicamento</span></label>
+        <input type="text" id="inp-nome" class="input-text" placeholder="Ex: Losartana 50mg, Dipirona, Vitamina...">
+      </div>
+      <div class="form-group">
+        <label class="form-label"><span>2. Horário de Tomar</span></label>
+        <div class="time-shortcuts">
+          <button class="btn-chip" onclick="selecionarHorarioAtalho('07:00', this)">☀️ Manhã<br>07:00</button>
+          <button class="btn-chip" onclick="selecionarHorarioAtalho('12:00', this)">🍽️ Almoço<br>12:00</button>
+          <button class="btn-chip" onclick="selecionarHorarioAtalho('16:00', this)">☕ Tarde<br>16:00</button>
+          <button class="btn-chip" onclick="selecionarHorarioAtalho('20:00', this)">🌙 Noite<br>20:00</button>
+        </div>
+        <div class="custom-time-row">
+          <input type="time" id="inp-horario" value="08:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <span>3. Em qual Potinho você guardou?</span>
+          <span class="hint" id="pote-selecionado-texto">Pote 1 selecionado</span>
+        </label>
+        <div class="pote-selector" id="pote-grid"></div>
+      </div>
+      <button type="button" class="btn-submit" onclick="adicionarMedicamento()">💾 Salvar no Aparelho</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>📋 Programação de Hoje</span></div>
+      <div class="schedule-list" id="lista-medicamentos"></div>
+    </div>
+
+    <div class="dev-mode-wrapper">
+      <button type="button" class="btn-toggle-dev" onclick="toggleModoDev()">
+        <span>🛠️ Modo Desenvolvedor</span>
+        <span id="dev-icon-arrow">▼</span>
+      </button>
+      <div class="dev-panel" id="dev-panel">
+        <div class="dev-panel-title">⚙️ Ferramentas de Teste e Hardware</div>
+        <div class="dev-grid">
+          <button type="button" class="btn-test alarm-btn" onclick="simularDisparo()">🚨 Testar Alarme</button>
+          <button type="button" class="btn-test" id="btn-led" onclick="alternarLed()">💡 Luz da Gaveta (Off)</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
+    let pacienteNome = localStorage.getItem('pill_paciente_nome') || 'Dona Maria';
+    let pacienteAvatar = localStorage.getItem('pill_paciente_avatar') || '👵';
+    let avatarTemp = pacienteAvatar;
+
+    function carregarDadosPaciente() {
+      document.getElementById('nome-paciente-display').textContent = pacienteNome;
+      document.getElementById('avatar-emoji').textContent = pacienteAvatar;
+    }
+
+    function abrirModalEdicao() {
+      avatarTemp = pacienteAvatar;
+      document.getElementById('modal-input-nome').value = pacienteNome;
+      atualizarSelecaoAvatarModal();
+      document.getElementById('modal-edicao').classList.add('open');
+    }
+
+    function fecharModalEdicao() {
+      document.getElementById('modal-edicao').classList.remove('open');
+    }
+
+    function selecionarAvatar(av) {
+      avatarTemp = av;
+      atualizarSelecaoAvatarModal();
+    }
+
+    function atualizarSelecaoAvatarModal() {
+      document.getElementById('opt-idosa').className = 'avatar-opt ' + (avatarTemp === '👵' ? 'selected' : '');
+      document.getElementById('opt-idoso').className = 'avatar-opt ' + (avatarTemp === '👴' ? 'selected' : '');
+    }
+
+    function salvarPaciente() {
+      const novoNome = document.getElementById('modal-input-nome').value.trim();
+      if (novoNome) pacienteNome = novoNome;
+      pacienteAvatar = avatarTemp;
+      localStorage.setItem('pill_paciente_nome', pacienteNome);
+      localStorage.setItem('pill_paciente_avatar', pacienteAvatar);
+      carregarDadosPaciente();
+      fecharModalEdicao();
+      chamar('/status');
+    }
+
+    let poteSelecionado = 1;
+    let alarmesRemotos = [];
+
+    function toggleModoDev() {
+      const panel = document.getElementById('dev-panel');
+      const arrow = document.getElementById('dev-icon-arrow');
+      const estaAberto = panel.classList.toggle('open');
+      arrow.textContent = estaAberto ? '▲' : '▼';
+    }
+
+    function renderPotinhos() {
+      const grid = document.getElementById('pote-grid');
+      grid.innerHTML = '';
+      const ordemFisica = [
+        1,  5,  9, 13, 17,
+        2,  6, 10, 14, 18,
+        3,  7, 11, 15, 19,
+        4,  8, 12, 16, 20
+      ];
+      ordemFisica.forEach(i => {
+        const btn = document.createElement('div');
+        btn.className = 'pote-btn ' + (poteSelecionado === i ? 'selected' : '');
+        btn.onclick = () => { poteSelecionado = i; renderPotinhos(); };
+        btn.innerHTML = '<span class="label">POTE</span>' + i;
+        grid.appendChild(btn);
+      });
+      document.getElementById('pote-selecionado-texto').textContent = 'Pote ' + poteSelecionado + ' selecionado';
+    }
+
+    function selecionarHorarioAtalho(hora, btnElement) {
+      document.getElementById('inp-horario').value = hora;
+      document.querySelectorAll('.time-shortcuts .btn-chip').forEach(b => b.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+    }
+
     function render(data) {
-      document.getElementById('st-hora').textContent = data.hora;
-      const alarmEl = document.getElementById('st-alarm');
+      document.getElementById('relogio-topo').textContent = data.hora || '--:--';
+
+      const banner = document.getElementById('status-card');
+      const icon = document.getElementById('status-icon');
+      const title = document.getElementById('status-title');
+      const sub = document.getElementById('status-sub');
+
       if (data.alarme) {
-        alarmEl.textContent = 'POTE ' + data.poteAtivo;
-        alarmEl.className = 'val-alarm st-ring';
+        banner.className = 'status-banner ringing';
+        icon.textContent = '🚨';
+        title.textContent = 'HORA DO REMÉDIO!';
+        sub.textContent = 'Entregar medicação do POTE ' + data.poteAtivo + ' para ' + pacienteNome + '!';
       } else {
-        alarmEl.textContent = 'EM ESPERA';
-        alarmEl.className = 'val-alarm st-wait';
+        banner.className = 'status-banner normal';
+        icon.textContent = '✅';
+        title.textContent = 'Tudo em ordem com ' + pacienteNome;
+        sub.textContent = data.prox && data.prox !== '--:--' 
+          ? 'Próximo remédio: ' + data.prox + ' • ' + data.doses + ' doses confirmadas hoje'
+          : 'Nenhum alarme ativo no momento';
       }
-      document.getElementById('st-proximo').textContent = 'Prox: ' + data.prox;
-      const container = document.getElementById('lista-alarmes');
+
+      const container = document.getElementById('lista-medicamentos');
       container.innerHTML = '';
-      if (!data.alarmes || data.alarmes.length === 0) {
-        container.innerHTML = '<span style="font-size:12px;color:#64748b;">Nenhum horário cadastrado</span>';
+      alarmesRemotos = data.alarmes || [];
+
+      if (alarmesRemotos.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhum remédio cadastrado ainda.<br>Use o formulário acima para adicionar.</div>';
       } else {
-        data.alarmes.forEach((item, idx) => {
-          const chip = document.createElement('div');
-          chip.className = 'alarm-chip';
-          chip.innerHTML = item.hora + ' ➔ <b>Pote ' + item.pote + '</b> <span class="del" onclick="removerHorario(' + idx + ')">&times;</span>';
-          container.appendChild(chip);
+        alarmesRemotos.forEach((item, idx) => {
+          const row = document.createElement('div');
+          row.className = 'schedule-item';
+          row.innerHTML = 
+            '<div class="item-left">' +
+              '<div class="time-badge">' + item.hora + '</div>' +
+              '<div class="med-details">' +
+                '<h4>Medicação Programada</h4>' +
+                '<p><span class="pote-tag">Pote ' + item.pote + '</span></p>' +
+              '</div>' +
+            '</div>' +
+            '<button class="btn-delete" title="Excluir" onclick="removerMedicamento(' + idx + ')">🗑️</button>';
+          container.appendChild(row);
         });
       }
+
+      const btnLed = document.getElementById('btn-led');
+      btnLed.textContent = data.led ? '💡 Luz da Gaveta (LIGADA)' : '💡 Luz da Gaveta (Off)';
     }
-    function chamar(url) { fetch(url).then(r => r.json()).then(render); }
-    function adicionarHorario() {
-      const hora = document.getElementById('inp-hora').value;
-      const pote = document.getElementById('inp-pote').value;
+
+    function chamar(url) { fetch(url).then(r => r.json()).then(render).catch(e => console.log(e)); }
+
+    function adicionarMedicamento() {
+      const hora = document.getElementById('inp-horario').value;
       if (!hora) return;
       const partes = hora.split(':');
-      chamar('/add-alarme?h=' + partes[0] + '&m=' + partes[1] + '&p=' + pote);
+      chamar('/add-alarme?h=' + partes[0] + '&m=' + partes[1] + '&p=' + poteSelecionado);
+      if (poteSelecionado < 20) poteSelecionado++; else poteSelecionado = 1;
+      renderPotinhos();
+      document.getElementById('inp-nome').value = '';
     }
-    function removerHorario(idx) { chamar('/del-alarme?idx=' + idx); }
-    setInterval(() => { fetch('/status').then(r => r.json()).then(render); }, 1200);
+
+    function removerMedicamento(idx) {
+      if (confirm('Deseja remover este alarme?')) {
+        chamar('/del-alarme?idx=' + idx);
+      }
+    }
+
+    function confirmarDoseTomada() { chamar('/silenciar'); }
+    function simularDisparo() { chamar('/disparar-alarme'); }
+    function alternarLed() { chamar('/toggle-led'); }
+
+    carregarDadosPaciente();
+    renderPotinhos();
+    chamar('/status');
+    setInterval(() => { chamar('/status'); }, 1500);
   </script>
 </body>
 </html>
@@ -901,16 +1090,7 @@ void setup() {
   setBuzzer(false);
 
   if (WiFi.status() == WL_CONNECTED) {
-    String boasVindas = String(EMOJI_FOGUETE) + " *PILL DISPENSER ONLINE!*\n";
-    boasVindas += "━━━━━━━━━━━━━━━━━━━━\n";
-    boasVindas += "Dispositivo pronto na bancada.\n";
-    if (totalAlarmes > 0) {
-      boasVindas += String(EMOJI_SINO) + " " + String(totalAlarmes) + " alarmes restaurados da memoria!\n";
-      boasVindas += "Proximo: `" + getProximoAlarmeStr() + "`\n\n";
-    } else {
-      boasVindas += "Nenhum alarme salvo. Use `/add 08:00 3` para definir.\n\n";
-    }
-    boasVindas += "Envie `/ajuda` para ver os comandos.";
+    String boasVindas = "Pill Dispenser iniciado!\nStatus: Online";
     enviarTelegram(boasVindas);
   }
 }
